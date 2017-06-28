@@ -10,43 +10,52 @@ object Advent9 {
 
     @JvmStatic
     fun main(args: Array<String>) {
-        val debug = true
+        val debug = false
+
         val input: String
         if (debug) {
-            input = "X(8x2)(3x3)ABCY"
+            input = "(25x3)(3x3)ABC(2x3)XY(5x2)PQRSTX(18x9)(3x2)TWO(5x7)SEVEN"
         } else {
             input = Util.loadFile("advent9.txt")
         }
-
-        var finalLength = 0
-        var i = 0
-        while (i < input.length) {
-            if (input[i] == '(') {
-                var closingBracket = input.indexOf(')', i)
-                val substring = input.substring(i + 1, closingBracket)
-                val marker = substring.split("x").map { it.toInt() }
-                closingBracket++
-                val i1 = decompress(input.substring(closingBracket, closingBracket + marker[0]), marker) * marker[1]
-                finalLength += i1
-            } else {
-                ++finalLength
-            }
-            ++i
-        }
-
+        val finalLength : Long = decompress(input)
         println("$finalLength")
     }
 
-    private fun decompress(input: String, marker: List<Int>): Int {
-        if (input.contains('(')) {
-            val closingBracket = input.indexOf(')')
-            val newMarker = input.substring(1, closingBracket).split('x').map { it.toInt() }
-            val input1 = input.substring(closingBracket + 1, closingBracket + 1 + newMarker [0])
-            val decompressed = decompress(input1, newMarker)
-            val i = decompressed * newMarker [1]
-            println("decompressed: $decompressed, repetition: ${newMarker[1]}")
-            return i
+    private fun decompress(input: String): Long {
+        var i = 0
+        var finalLength = 0L
+        while (i < input.length) {
+            if (input[i] == '(') {
+                val marker = getMarkerForInput(input.substring(i))
+                i += marker.strLen
+                finalLength += decompress(input.substring(i, i + marker.requestedBuffer)) * marker.repeatCount
+                i += marker.requestedBuffer
+            } else {
+                ++finalLength
+                ++i
+            }
         }
-        return input.filter { it != ' ' }.length
+        return finalLength
     }
+
+    private fun getMarkerForInput(input: String): Marker {
+        val closingBracket = input.indexOf(char = ')', startIndex = 0)
+        val map = input.substring(1, closingBracket).split("x").map { it.toInt() }
+        return map.toMarker()
+    }
+
+
+    data class Marker(val requestedBuffer: Int, val repeatCount: Int, val strLen: Int = "(${requestedBuffer}x$repeatCount)".length) {
+
+        override fun toString(): String {
+            return "Marker[$requestedBuffer, $repeatCount]"
+        }
+
+
+    }
+
+    fun List<Int>.toMarker(): Marker = Marker(requestedBuffer = this[0], repeatCount = this[1])
+
+
 }
